@@ -44,7 +44,7 @@ namespace fb
 {
 	Ingame::Ingame(){}
 	
-	void make_pipe(bn::vector<bn::sprite_ptr, 32>& sprites, int direction, int y, int height, bool draw_lip=true)
+	void make_pipe(bn::vector<bn::sprite_ptr, 32>& sprites, int direction, int y, int height, bool draw_lip=true, int priority = 5)
     {
         for(int i=0; i<height; i++)
         {
@@ -55,14 +55,14 @@ namespace fb
 					//Top pipe
 					bn::sprite_builder builder(bn::sprite_items::pipe_top);
 					builder.set_position(fb::pipe_screen_edge_x, y+(32*i));
-					builder.set_z_order(5);
+					builder.set_z_order(priority);
 					sprites.push_back(builder.release_build());
 				}
 				else
 				{
 					bn::sprite_builder builder(bn::sprite_items::pipe_middle);
 					builder.set_position(fb::pipe_screen_edge_x, y+(32*i));
-					builder.set_z_order(5);
+					builder.set_z_order(priority);
 					sprites.push_back(builder.release_build());
 				}
             }
@@ -73,14 +73,14 @@ namespace fb
 					//Bottom pipe
 					bn::sprite_builder builder(bn::sprite_items::pipe_bottom);
 					builder.set_position(fb::pipe_screen_edge_x, y+(32*i));
-					builder.set_z_order(5);
+					builder.set_z_order(priority);
 					sprites.push_back(builder.release_build());
 				}
                 else
 				{
 					bn::sprite_builder builder(bn::sprite_items::pipe_middle);
 					builder.set_position(fb::pipe_screen_edge_x, y+(32*i));
-					builder.set_z_order(5);
+					builder.set_z_order(priority);
 					sprites.push_back(builder.release_build());
 				}
             }
@@ -89,7 +89,7 @@ namespace fb
                 //Middle pipe
                 bn::sprite_builder builder(bn::sprite_items::pipe_middle);
                 builder.set_position(fb::pipe_screen_edge_x, y+(32*i));
-                builder.set_z_order(5);
+                builder.set_z_order(priority);
 				sprites.push_back(builder.release_build());
             }
         }
@@ -118,8 +118,12 @@ namespace fb
 	
 	bn::fixed lerp(bn::fixed a, bn::fixed b, bn::fixed percent) {return a + percent * (b - a);}
 	
+	int game_frames;
+	int best;
+	
 	Scene Ingame::execute()
 	{
+		game_frames = 0;
 		int frames = 0;
 		
 		bool lose = false;
@@ -130,9 +134,13 @@ namespace fb
 		int between_pipes = 0;
 		int score_delay = -1;
 		
-		bn::sram::read_offset(fb::best, 0);
+		//Load data
+		bn::sram::read_offset(best, 0);
 		
 		bn::seed_random random;
+		int seed;
+		bn::sram::read_offset(seed, 4);
+		random.set_seed(seed);
 		
 		//Setup the background
 		bn::regular_bg_ptr bg_city = bn::regular_bg_items::bg_city.create_bg(0, 0);
@@ -253,13 +261,18 @@ namespace fb
 				{
 					int type =  random.get_unbiased_int(5);
 					int nudge = 0;
+					int height2 = 0;
+					int y2 = 0;
 					switch(type)
 					{
 						case 0: default:
 							nudge = (random.get_int(64)-32);
-							make_pipe_pair(pipe_sprites, -fb::pipe_screen_edge_y+nudge, 2, 2+(nudge/32), 42);
+							height2 = 2+(nudge/32);
+							y2 = height2*32 + 42;
+							y2 += -fb::pipe_screen_edge_y;
+							make_pipe_pair(pipe_sprites, -fb::pipe_screen_edge_y+nudge, 2, height2, 42);
 							if(nudge>0) make_pipe(pipe_sprites, 1, (-fb::pipe_screen_edge_y+nudge)-32, 1);
-							if(nudge<0) make_pipe(pipe_sprites, 1, (fb::pipe_screen_edge_y-nudge)-28, 2, false);
+							if(nudge<0) make_pipe(pipe_sprites, 1, y2, 5, true, 10); //very quick and dirty fix :(
 							break;
 						case 1:
 							make_pipe_pair(pipe_sprites, -fb::pipe_screen_edge_y-32, 1, 4, 42);
@@ -300,7 +313,7 @@ namespace fb
 					bn::string<4> text2;
 					text = bn::to_string<4>(pipes_passed); 
 					text_generator.generate(38, 100, text, text_sprites);
-					text2 = bn::to_string<4>(fb::best); 
+					text2 = bn::to_string<4>(best); 
 					text_generator.generate(38, 100, text2, best_text_sprites);
 					
 					for(bn::sprite_ptr& sprite : text_sprites)
@@ -313,7 +326,9 @@ namespace fb
 					}
 					lose_sprites_enabled = true;
 					
-					bn::sram::write(fb::best);
+					//Save data
+					bn::sram::write(best);
+					bn::sram::write_offset(fb::game_frames, 4); //This will be used for the randomizer's seed
 				}
 				
 				//Slide the game over and info box sprites onto the screen

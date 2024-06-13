@@ -3,6 +3,7 @@
 
 namespace fb
 {
-	extern int best = 0;
+	extern int best;
+	extern int game_frames;
 }
 #endif

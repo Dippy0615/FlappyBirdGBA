@@ -2,6 +2,7 @@
 
 #include "bn_seed_random.h"
 
+#include "fb_common.h"
 #include "fb_scene.h"
 #include "fb_scene_title.h"
 #include "fb_scene_ingame.h"
@@ -11,6 +12,8 @@ int main()
     bn::core::init();
 	
 	fb::Scene scene = fb::Scene::Title;
+	
+	fb::game_frames = 0;
 	
     while(true)
     {
@@ -25,5 +28,6 @@ int main()
 			fb::Ingame ingame = fb::Ingame();
 			scene = ingame.execute();
 		}
+		fb::game_frames++;
     }
 }
