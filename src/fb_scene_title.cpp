@@ -51,6 +51,8 @@ namespace fb
 		text_generator.set_center_alignment();
 		bn::vector<bn::sprite_ptr, 32> text_sprites;
 		text_generator.generate(0, 0, "PRESS START TO BEGIN", text_sprites);
+		text_generator.generate(0, 60, "Ported by Dippy using Butano", text_sprites);
+		text_generator.generate(0, 74, "https://github.com/GValiente/butano", text_sprites);
 		
 		while(true)
 		{
